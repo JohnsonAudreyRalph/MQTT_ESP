@@ -1,15 +1,15 @@
-#include <WiFi.h>                // Thư viện Wi-Fi cho ESP32
+#include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>  // Thư viện JSON
 
 // Cấu hình WiFi
-const char* ssid = "BM_CNTT_410";
-const char* password = "234567Cn";
+const char* ssid = "DTVT-T5";
+const char* password = "Mật_khẩu_WIFI";
 
 // Cấu hình MQTT
-const char* mqttServer = "192.168.110.149";
+const char* mqttServer = "172.16.1.149";
 const int mqttPort = 1883;               // Cổng MQTT
 const char* mqttTopic = "topic"; // Topic để gửi dữ liệu
 
@@ -24,10 +24,12 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600, 60000); // GMT+7 (điều
 void setupWiFi() {
   delay(10);
   Serial.println();
-  Serial.print("Kết nối tới ");
+  Serial.print("Connecting to ");
   Serial.println(ssid);
 
-  WiFi.begin(ssid, password);
+  // WiFi.begin(ssid, password);
+  WiFi.begin(ssid); // Nếu không có mật khẩu
+
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.print(".");
@@ -35,7 +37,7 @@ void setupWiFi() {
 
   Serial.println("");
   Serial.println("WiFi connected");
-  Serial.println("Địa chỉ IP ESP32: ");
+  Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
 }
 
@@ -43,6 +45,7 @@ void setupWiFi() {
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Nội dung nhận được từ TOPIC: ");
   Serial.print(topic);
+  Serial.print(". Message: ");
   String message;
   
   for (int i = 0; i < length; i++) {
@@ -53,10 +56,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
   DynamicJsonDocument doc(1024);
   DeserializationError error = deserializeJson(doc, message);
   if (error) {
-    Serial.print("Lỗi!: ");
+    Serial.print("deserializeJson() failed: ");
     Serial.println(error.f_str());
     return;
   }
+
   // Trích xuất dữ liệu từ JSON
   String receivedDate = doc["date"];
   String receivedTime = doc["time"];
@@ -71,17 +75,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
 // Hàm kết nối MQTT
 void connectMQTT() {
   while (!client.connected()) {
-    Serial.print("Đang kết nối tới MQTT...");
-    String clientId = "ESP32Client-";
+    Serial.print("Attempting MQTT connection...");
+    String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
 
     if (client.connect(clientId.c_str())) {
       Serial.println("connected");
       client.subscribe(mqttTopic);
     } else {
-      Serial.print("Lỗi!, rc=");
+      Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" thực hiện kết nối lại sau 5s");
+      Serial.println(" try again in 5 seconds");
       delay(5000);
     }
   }
